@@ -1,0 +1,33 @@
+{
+  "summary": "First-finish smoke test of TradeSense AI. All 14 backend endpoints and all 8 frontend pages tested. Backend returned 39 signals (2 delisted symbols expected). Buy dialog + Add-to-Portfolio flow verified end-to-end. Claude AI /analyze returned 827-char thesis. No console/page errors on frontend. Only observation: currently 0 signals at 4+ stars so High-Conviction tab is empty (data-driven, not a bug).",
+  "tested_scope": ["backend", "frontend", "integration"],
+  "passed": [
+    "GET /api/scan/status returns status+count (39 signals, scanning after POST)",
+    "GET /api/signals returns {signals:[...]} with all documented fields (symbol,name,sector,price,buy_zone,stop_loss,target_1,target_2,confidence,stars,strategy,horizon,scores,reasons)",
+    "GET /api/signals?min_stars=4 filter works (returns 0 currently, expected as no 4-star stocks)",
+    "GET /api/signals/high-conviction returns 0 signals (data-driven)",
+    "GET /api/stock/RELIANCE.NS returns full detailed analysis",
+    "POST /api/stock/RELIANCE.NS/analyze returns Claude Sonnet AI text (~827 chars)",
+    "GET /api/market/heatmap returns 13 sectors with stocks, avg_score, avg_return_1m",
+    "GET /api/market/trend returns indicators+score+regime (Bearish)",
+    "GET /api/news returns 20 items with sentiment+score and aggregate_score=62.2",
+    "Watchlist POST/GET/DELETE all working",
+    "Trades POST (with quantity+price payload), close (pnl=100, pnl_pct=3.57), DELETE all working",
+    "GET /api/portfolio returns summary with 12 keys + holdings[] with live prices",
+    "POST /api/scan/run triggers background scan (status transitions to scanning)",
+    "Frontend loads without errors (0 console/page errors)",
+    "All sidebar navs work: Dashboard, Signals, Portfolio, Watchlist, Heatmap, Journal, Performance, News",
+    "Signals page renders 39 signal cards with confidence bar, stars, buy zone, SL, targets, reasons chips, invest amount",
+    "Add-to-Portfolio dialog opens, confirm-buy-btn creates trade -> visible in Portfolio page with live CMP",
+    "Sidebar Run Scan button + scan status pill (ready/scanning) visible and updates"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": {
+    "trade_payload_contract": "POST /api/trades requires {symbol, price, quantity, stop_loss, target_1, target_2, strategy} - not entry_price/shares. Frontend SignalCard already uses correct contract (verified via dialog test).",
+    "high_conviction_empty": "Current scan produced max 3-star signals, so /api/signals/high-conviction and 'High Conviction' tab show 0 - this is data-driven, not a defect."
+  }
+}

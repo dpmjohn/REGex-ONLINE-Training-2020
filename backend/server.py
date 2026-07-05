@@ -20,6 +20,7 @@ from stock_universe import NSE_UNIVERSE, get_symbols, get_stock_info
 from analyzer import analyze_symbol, analyze_market_trend, clear_cache, _download, compute_indicators
 from news_service import fetch_headlines, score_sentiment_batch, aggregate_sentiment, stock_specific_analysis
 from scheduler import ScanScheduler
+import paper_trading
 
 # MongoDB
 mongo_url = os.environ['MONGO_URL']
@@ -102,10 +103,12 @@ scan_cache = ScanCache()
 # ---------- Notifications after scan ----------
 
 async def emit_alerts(label: str):
-    """After a scan, persist alerts for new 4+ star high-conviction signals."""
+    """After a scan: (1) fire in-app alerts for 4+ star signals, (2) paper-trade auto exec, (3) auto-exit paper trades on SL/target hits."""
+    signals_by_symbol = {s["symbol"]: s for s in scan_cache.signals}
+
+    # 1) Alerts for 4+ star signals (dedupe 24h)
     hi = [s for s in scan_cache.signals if s["stars"] >= 4 and s["confidence"] >= 75 and s["risk_reward"] >= 2.0]
     for s in hi:
-        # Dedupe: don't re-alert the same symbol within 24h
         recent = await db.alerts.find_one({
             "symbol": s["symbol"],
             "created_at": {"$gt": (datetime.now(timezone.utc).timestamp() - 24 * 3600)}
@@ -114,25 +117,39 @@ async def emit_alerts(label: str):
             continue
         alert = {
             "id": str(uuid.uuid4()),
-            "symbol": s["symbol"],
-            "name": s["name"],
-            "trigger": label,
-            "price": s["price"],
-            "stop_loss": s["stop_loss"],
-            "target_1": s["target_1"],
-            "confidence": s["confidence"],
-            "stars": s["stars"],
-            "strategy": s["strategy"],
-            "reasons": s["reasons"],
-            "investment_amount": s["investment_amount"],
-            "shares": s["shares"],
+            "symbol": s["symbol"], "name": s["name"], "trigger": label,
+            "price": s["price"], "stop_loss": s["stop_loss"], "target_1": s["target_1"],
+            "confidence": s["confidence"], "stars": s["stars"], "strategy": s["strategy"],
+            "reasons": s["reasons"], "investment_amount": s["investment_amount"], "shares": s["shares"],
             "holding_period": s["holding_period"],
             "created_at": datetime.now(timezone.utc).timestamp(),
-            "created_iso": datetime.now(timezone.utc).isoformat(),
-            "read": False,
+            "created_iso": datetime.now(timezone.utc).isoformat(), "read": False,
         }
         await db.alerts.insert_one(alert)
+        # 2) Auto-execute in paper portfolio
+        try:
+            await paper_trading.auto_execute_signal(db, s)
+        except Exception as e:
+            logger.warning(f"Paper auto-exec failed for {s['symbol']}: {e}")
         logger.info(f"[Alert] {s['symbol']} conf={s['confidence']} stars={s['stars']} trigger={label}")
+
+    # 3) Check exits for open paper trades
+    try:
+        closed = await paper_trading.evaluate_exits(db, signals_by_symbol)
+        for c in closed:
+            await db.alerts.insert_one({
+                "id": str(uuid.uuid4()),
+                "symbol": c["symbol"], "name": c["name"], "trigger": f"Paper Exit • {c.get('auto_exit_reason', '')}",
+                "price": c["exit_price"], "stop_loss": c.get("stop_loss"), "target_1": c.get("target"),
+                "confidence": c.get("confidence_at_entry", 0), "stars": c.get("stars_at_entry", 0),
+                "strategy": c.get("strategy", ""), "reasons": [c.get("auto_exit_reason", "Auto exit")],
+                "investment_amount": c["exit_price"] * c["quantity"], "shares": c["quantity"],
+                "holding_period": "closed",
+                "created_at": datetime.now(timezone.utc).timestamp(),
+                "created_iso": datetime.now(timezone.utc).isoformat(), "read": False,
+            })
+    except Exception as e:
+        logger.warning(f"Paper exit evaluation failed: {e}")
 
 scheduler = ScanScheduler(scan_fn=lambda: run_scan(), notify_fn=emit_alerts)
 
@@ -461,6 +478,38 @@ async def mark_all_read():
 @api_router.get("/scheduler/status")
 async def scheduler_status():
     return scheduler.get_status()
+
+# ----- Paper Trading -----
+
+@api_router.get("/paper/portfolio")
+async def paper_portfolio():
+    signals_by_symbol = {s["symbol"]: s for s in scan_cache.signals}
+    return await paper_trading.portfolio_summary(db, signals_by_symbol)
+
+@api_router.get("/paper/trades")
+async def paper_trades(status: Optional[str] = None):
+    q = {"status": status} if status else {}
+    trades = await db.paper_trades.find(q, {"_id": 0}).sort("date", -1).to_list(500)
+    return {"trades": trades}
+
+@api_router.post("/paper/trades/{trade_id}/close")
+async def paper_close(trade_id: str, close: TradeClose):
+    result = await paper_trading.close_paper_trade(db, trade_id, close.exit_price)
+    if not result:
+        raise HTTPException(404, "Trade not found or already closed")
+    return {"trade": result}
+
+@api_router.post("/paper/reset")
+async def paper_reset():
+    acct = await paper_trading.reset_account(db)
+    return {"account": acct}
+
+@api_router.post("/paper/simulate-scan")
+async def paper_simulate_scan():
+    """Manual trigger: run the paper-trade auto-exec on current cached signals (skips scheduled wait)."""
+    await emit_alerts("Manual Simulation")
+    signals_by_symbol = {s["symbol"]: s for s in scan_cache.signals}
+    return await paper_trading.portfolio_summary(db, signals_by_symbol)
 
 # ----- Startup / Include router -----
 

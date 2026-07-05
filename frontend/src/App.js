@@ -10,6 +10,7 @@ import Heatmap from "@/pages/Heatmap";
 import Journal from "@/pages/Journal";
 import Performance from "@/pages/Performance";
 import News from "@/pages/News";
+import Paper from "@/pages/Paper";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/signals" element={<Signals />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/watchlist" element={<Watchlist />} />
+            <Route path="/paper" element={<Paper />} />
             <Route path="/heatmap" element={<Heatmap />} />
             <Route path="/journal" element={<Journal />} />
             <Route path="/performance" element={<Performance />} />

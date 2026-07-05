@@ -24,4 +24,15 @@ export const endpoints = {
   deleteTrade: (id) => api.delete(`/trades/${id}`),
   portfolio: () => api.get("/portfolio"),
   universe: () => api.get("/universe"),
+  // Paper trading
+  paperPortfolio: () => api.get("/paper/portfolio"),
+  paperTrades: (status) => api.get("/paper/trades", { params: status ? { status } : {} }),
+  paperClose: (id, exit_price) => api.post(`/paper/trades/${id}/close`, { exit_price }),
+  paperReset: () => api.post("/paper/reset"),
+  paperSimulate: () => api.post("/paper/simulate-scan"),
+  // Alerts
+  alerts: (unread_only) => api.get("/alerts", { params: unread_only ? { unread_only: true } : {} }),
+  markAlertRead: (id) => api.post(`/alerts/${id}/read`),
+  markAllRead: () => api.post("/alerts/read-all"),
+  schedulerStatus: () => api.get("/scheduler/status"),
 };

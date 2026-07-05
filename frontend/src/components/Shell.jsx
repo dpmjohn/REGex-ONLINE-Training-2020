@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { House, ChartLineUp, Wallet, Bookmark, SquaresFour, Newspaper, Notebook, ChartBar, ArrowsClockwise } from "@phosphor-icons/react";
+import { House, ChartLineUp, Wallet, Bookmark, SquaresFour, Newspaper, Notebook, ChartBar, ArrowsClockwise, Flask } from "@phosphor-icons/react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useEffect, useState } from "react";
 import { endpoints } from "@/lib/api";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 const NAV = [
   { to: "/", label: "Dashboard", icon: House, testid: "nav-dashboard" },
   { to: "/signals", label: "Buy Signals", icon: ChartLineUp, testid: "nav-signals" },
+  { to: "/paper", label: "Paper Trading", icon: Flask, testid: "nav-paper" },
   { to: "/portfolio", label: "Portfolio", icon: Wallet, testid: "nav-portfolio" },
   { to: "/watchlist", label: "Watchlist", icon: Bookmark, testid: "nav-watchlist" },
   { to: "/heatmap", label: "Sector Heatmap", icon: SquaresFour, testid: "nav-heatmap" },

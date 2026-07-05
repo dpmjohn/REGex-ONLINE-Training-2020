@@ -1,0 +1,95 @@
+{
+  "theme": "light",
+  "archetype": "1 (Organic & Earthy)",
+  "reasoning": "Finance and trading apps need trust, clarity, and stability. This archetype provides a grounded, mature aesthetic using warm off-whites and deep greens, avoiding the clinical coldness of typical fintech dashboards. It prioritizes data legibility and serious analytics.",
+  "colors": {
+    "background": "60 10% 98%",
+    "foreground": "60 5% 10%",
+    "card": "0 0% 100%",
+    "card_foreground": "60 5% 10%",
+    "primary": "127 34% 18%",
+    "primary_foreground": "0 0% 100%",
+    "secondary": "60 10% 92%",
+    "secondary_foreground": "127 34% 18%",
+    "muted": "60 5% 94%",
+    "muted_foreground": "60 5% 45%",
+    "accent": "10 65% 55%",
+    "accent_foreground": "0 0% 100%",
+    "destructive": "0 74% 42%",
+    "destructive_foreground": "0 0% 100%",
+    "success": "142 40% 30%",
+    "success_foreground": "0 0% 100%",
+    "border": "60 10% 88%",
+    "input": "60 10% 88%",
+    "ring": "127 34% 18%"
+  },
+  "typography": {
+    "heading_font": "Manrope",
+    "body_font": "IBM Plex Sans",
+    "rules": {
+      "h1": "text-4xl tracking-tight font-extrabold text-foreground",
+      "h2": "text-3xl tracking-tight font-bold text-foreground",
+      "h3": "text-xl font-semibold text-foreground",
+      "h4": "text-lg font-semibold text-foreground",
+      "body": "text-base leading-relaxed text-foreground",
+      "small_labels": "text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground",
+      "metrics": "text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+    }
+  },
+  "spacing_and_layout": {
+    "grid_strategy": "Control Room Grid (Mode B)",
+    "rules": [
+      "Base grid for dashboard: grid-cols-1 md:grid-cols-3 lg:grid-cols-4 with gap-4 or gap-6.",
+      "Dense and compact spacing for data, but use ample padding within cards (p-6) to prevent text collision.",
+      "Top-Left 'North Star' Metric: Place the single most critical metric in the top-left quadrant.",
+      "Optical Alignment: Align numbers to the right in tables to stack decimal points vertically.",
+      "Grid Items MUST be direct children of the grid container."
+    ]
+  },
+  "surfaces": {
+    "cards": "Flat background, 1px subtle border (border-border), NO soft shadows. On hover: slight lift (-translate-y-1) and shadow-sm.",
+    "headers": "Solid background (bg-background) with a hard bottom border (border-b border-border). No transparency.",
+    "widgets": "Use sharp edges or subtle roundness (rounded-md max). Go cardless where possible to reduce box-in-box UI.",
+    "grid_borders": "Use border-collapse style layout for tables and heavy data sections. Expose the grid."
+  },
+  "components_strategy": {
+    "buttons": "Primary button in Deep Forest Green, crisp corners (rounded-md). Explicitly set hover state (hover:bg-primary/90).",
+    "forms_inputs": "Use Shadcn Form, Input, Select. Flat borders, clear focus ring (focus:ring-primary).",
+    "data_visualization": "Use Recharts or Shadcn Charts. Line charts for trends, Bar charts for comparisons. Use custom success/destructive colors for profit/loss.",
+    "badges_tags": "Use sharp edges for badges (tags/reasons). e.g., rounded-sm. Use subtle backgrounds (bg-secondary) with contrasting text."
+  },
+  "icons_and_assets": {
+    "library": "@phosphor-icons/react",
+    "instructions": "Use Phosphor Icons (regular or duotone) for clear, mature iconography fitting a data dashboard. Install via: yarn add @phosphor-icons/react",
+    "image_urls": [
+      {
+        "url": "https://images.pexels.com/photos/3778603/pexels-photo-3778603.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Professional smiling businessman in a suit.",
+        "category": "user_avatar_main"
+      },
+      {
+        "url": "https://images.pexels.com/photos/35839965/pexels-photo-35839965.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Black and white portrait of an adult man wearing a suit and glasses.",
+        "category": "user_avatar_secondary"
+      }
+    ]
+  },
+  "animations": {
+    "interactions": "Hover states on all interactive elements. Micro-interactions for feedback.",
+    "transitions": "Use specific properties (e.g., transition-colors, transition-transform) with duration-200. No 'transition-all'."
+  },
+  "accessibility": {
+    "contrast": "Ensure minimum 4.5:1 ratio for text. Deep greens and charcoals against off-white background.",
+    "focus": "All focusable elements must have focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    "testing": "CRITICAL: All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  },
+  "instructions_to_main_agent": [
+    "Update /app/frontend/src/index.css with the provided HSL color variables.",
+    "Import Manrope and IBM Plex Sans via Google Fonts in index.html.",
+    "Install @phosphor-icons/react and use it for all icons.",
+    "Implement the Dashboard with a sidebar or top navigation, maintaining the 'Control Room' grid layout.",
+    "Build the 'Buy Signals' cards with flat styles, explicit borders, and clear data hierarchy.",
+    "Use Shadcn UI components for dropdowns, tabs, tables, and dialogs.",
+    "Avoid using generic bright red/green for profit/loss; use the specified success (142 40% 30%) and destructive (0 74% 42%) colors for better contrast and maturity."
+  ]
+}

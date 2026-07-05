@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { House, ChartLineUp, Wallet, Bookmark, SquaresFour, Newspaper, Notebook, ChartBar, ArrowsClockwise } from "@phosphor-icons/react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useEffect, useState } from "react";
 import { endpoints } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,9 @@ export default function Shell() {
           ))}
         </nav>
         <div className="p-4 border-t border-border">
+          <div className="mb-3">
+            <NotificationBell />
+          </div>
           <div className="text-xs tracking-widest uppercase text-muted-foreground mb-2">Scan Status</div>
           <div className="flex items-center justify-between mb-2">
             <Badge variant={status.status === "ready" ? "default" : "secondary"} data-testid="scan-status-badge">

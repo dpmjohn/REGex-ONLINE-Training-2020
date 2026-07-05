@@ -19,6 +19,7 @@ load_dotenv(ROOT_DIR / '.env')
 from stock_universe import NSE_UNIVERSE, get_symbols, get_stock_info
 from analyzer import analyze_symbol, analyze_market_trend, clear_cache, _download, compute_indicators
 from news_service import fetch_headlines, score_sentiment_batch, aggregate_sentiment, stock_specific_analysis
+from scheduler import ScanScheduler
 
 # MongoDB
 mongo_url = os.environ['MONGO_URL']
@@ -97,6 +98,43 @@ class ScanCache:
         }
 
 scan_cache = ScanCache()
+
+# ---------- Notifications after scan ----------
+
+async def emit_alerts(label: str):
+    """After a scan, persist alerts for new 4+ star high-conviction signals."""
+    hi = [s for s in scan_cache.signals if s["stars"] >= 4 and s["confidence"] >= 75 and s["risk_reward"] >= 2.0]
+    for s in hi:
+        # Dedupe: don't re-alert the same symbol within 24h
+        recent = await db.alerts.find_one({
+            "symbol": s["symbol"],
+            "created_at": {"$gt": (datetime.now(timezone.utc).timestamp() - 24 * 3600)}
+        })
+        if recent:
+            continue
+        alert = {
+            "id": str(uuid.uuid4()),
+            "symbol": s["symbol"],
+            "name": s["name"],
+            "trigger": label,
+            "price": s["price"],
+            "stop_loss": s["stop_loss"],
+            "target_1": s["target_1"],
+            "confidence": s["confidence"],
+            "stars": s["stars"],
+            "strategy": s["strategy"],
+            "reasons": s["reasons"],
+            "investment_amount": s["investment_amount"],
+            "shares": s["shares"],
+            "holding_period": s["holding_period"],
+            "created_at": datetime.now(timezone.utc).timestamp(),
+            "created_iso": datetime.now(timezone.utc).isoformat(),
+            "read": False,
+        }
+        await db.alerts.insert_one(alert)
+        logger.info(f"[Alert] {s['symbol']} conf={s['confidence']} stars={s['stars']} trigger={label}")
+
+scheduler = ScanScheduler(scan_fn=lambda: run_scan(), notify_fn=emit_alerts)
 
 # ---------- Scan pipeline ----------
 
@@ -399,6 +437,31 @@ async def portfolio():
 async def universe():
     return {"stocks": NSE_UNIVERSE}
 
+# ----- Alerts (in-app notifications) -----
+
+@api_router.get("/alerts")
+async def list_alerts(unread_only: bool = False, limit: int = 50):
+    q = {"read": False} if unread_only else {}
+    items = await db.alerts.find(q, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    unread_count = await db.alerts.count_documents({"read": False})
+    return {"alerts": items, "unread_count": unread_count}
+
+@api_router.post("/alerts/{alert_id}/read")
+async def mark_alert_read(alert_id: str):
+    await db.alerts.update_one({"id": alert_id}, {"$set": {"read": True}})
+    return {"status": "ok"}
+
+@api_router.post("/alerts/read-all")
+async def mark_all_read():
+    await db.alerts.update_many({"read": False}, {"$set": {"read": True}})
+    return {"status": "ok"}
+
+# ----- Scheduler status -----
+
+@api_router.get("/scheduler/status")
+async def scheduler_status():
+    return scheduler.get_status()
+
 # ----- Startup / Include router -----
 
 app.include_router(api_router)
@@ -418,7 +481,9 @@ logger = logging.getLogger(__name__)
 async def startup_event():
     logger.info("TradeSense AI backend starting - kicking off initial scan in background")
     asyncio.create_task(run_scan())
+    scheduler.start()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    scheduler.shutdown()
     client.close()
